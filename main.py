@@ -437,8 +437,11 @@ class ImageFeatureExtractor:
             print("Silakan buat folder dengan struktur:")
             print("dataset/")
             print("  ├── apel/")
+            print("  └── mangga/")
             print("  ├── nanas/")
+            print("  └── pear/")
             print("  └── pisang/")
+            print("  └── strawberry/")
             return
         
         categories = [f for f in base_path.iterdir() if f.is_dir()]
@@ -573,8 +576,12 @@ if __name__ == "__main__":
     print("\nPastikan struktur folder seperti berikut:")
     print("dataset/")
     print("  ├── apel/")
+    print("  ├── mangga/")
     print("  ├── nanas/")
+    print("  └── pear/")
     print("  └── pisang/")
+    print("  └── strawberry/")
+
     print("\nMemulai proses ekstraksi...\n")
     
     extractor = ImageFeatureExtractor(base_folder='dataset')
