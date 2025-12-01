@@ -449,6 +449,17 @@ class ImageFeatureExtractor:
         
         print(f"Ditemukan {len(categories)} kategori")
         
+        # Dictionary untuk menyimpan semua hasil gabungan
+        all_results = {
+            'color': [],
+            'shape': [],
+            'color_moments': [],
+            'texture': [],
+            'glcm': [],
+            'edge': [],
+            'combined': []  # Untuk gabungan semua fitur
+        }
+        
         for category_path in categories:
             results_dict, category_name = self.process_category(category_path)
             
@@ -461,7 +472,7 @@ class ImageFeatureExtractor:
                 print(f"Output folder: {category_output_folder}")
                 print(f"{'='*60}\n")
                 
-                # Simpan setiap jenis ekstraksi ke CSV terpisah
+                # Simpan setiap jenis ekstraksi ke CSV terpisah per kategori
                 self.save_to_csv(results_dict['color'], category_name, 'warna', category_output_folder)
                 self.save_to_csv(results_dict['shape'], category_name, 'bentuk', category_output_folder)
                 self.save_to_csv(results_dict['color_moments'], category_name, 'color_moments', category_output_folder)
@@ -469,14 +480,80 @@ class ImageFeatureExtractor:
                 self.save_to_csv(results_dict['glcm'], category_name, 'glcm', category_output_folder)
                 self.save_to_csv(results_dict['edge'], category_name, 'edge', category_output_folder)
                 
+                # Tambahkan label kategori ke setiap hasil
+                for result_type in ['color', 'shape', 'color_moments', 'texture', 'glcm', 'edge']:
+                    for item in results_dict[result_type]:
+                        item_with_label = {'Kategori': category_name, **item}
+                        all_results[result_type].append(item_with_label)
+                
+                # Gabungkan semua fitur untuk setiap gambar
+                for i in range(len(results_dict['color'])):
+                    combined_item = {
+                        'Kategori': category_name,
+                        'Nama_File': results_dict['color'][i]['Nama_File']
+                    }
+                    # Gabungkan semua fitur kecuali Nama_File yang duplikat
+                    for result_type in ['color', 'shape', 'color_moments', 'texture', 'glcm', 'edge']:
+                        for key, value in results_dict[result_type][i].items():
+                            if key != 'Nama_File':
+                                combined_item[key] = value
+                    
+                    all_results['combined'].append(combined_item)
+                
                 print(f"✓ Selesai memproses {len(results_dict['color'])} gambar dari kategori {category_name}\n")
             else:
                 print(f"Tidak ada hasil untuk kategori {category_name}")
+        
+        # Simpan file gabungan semua kategori
+        if all_results['color']:
+            print("\n" + "="*60)
+            print("Membuat file gabungan SEMUA KATEGORI...")
+            print("="*60 + "\n")
+            
+            # Folder untuk file gabungan semua kategori
+            semua_folder = Path('results') / 'semua'
+            
+            # Simpan setiap jenis fitur gabungan ke folder 'semua'
+            self.save_to_csv(all_results['color'], 'semua_kategori', 'warna', semua_folder)
+            self.save_to_csv(all_results['shape'], 'semua_kategori', 'bentuk', semua_folder)
+            self.save_to_csv(all_results['color_moments'], 'semua_kategori', 'color_moments', semua_folder)
+            self.save_to_csv(all_results['texture'], 'semua_kategori', 'tekstur', semua_folder)
+            self.save_to_csv(all_results['glcm'], 'semua_kategori', 'glcm', semua_folder)
+            self.save_to_csv(all_results['edge'], 'semua_kategori', 'edge', semua_folder)
+            
+            # Simpan file gabungan SEMUA FITUR langsung di folder results
+            print(f"\n{'='*60}")
+            print("Membuat file GABUNGAN LENGKAP (semua fitur + semua kategori)...")
+            print(f"{'='*60}\n")
+            
+            results_folder = Path('results')
+            df_combined = pd.DataFrame(all_results['combined'])
+            csv_filename = results_folder / 'hasil_semua_fitur_buah.csv'
+            df_combined.to_csv(csv_filename, index=False)
+            
+            print(f"✓ Hasil disimpan ke: {csv_filename}")
+            print(f"  Total kolom: {len(df_combined.columns)}")
+            print(f"  Total baris: {len(df_combined)}")
+            print(f"\n  Preview (3 baris pertama, beberapa kolom):")
+            preview_cols = ['Kategori', 'Nama_File'] + list(df_combined.columns[2:7])
+            print(df_combined[preview_cols].head(3).to_string(index=False))
+            print(f"  ... dan {len(df_combined.columns) - len(preview_cols)} kolom lainnya")
+            print()
+            
+            print(f"\n✓ Total {len(all_results['combined'])} gambar dari semua kategori berhasil diproses!")
         
         print("\n" + "="*60)
         print("=== PROSES SELESAI ===")
         print("\nStruktur output yang dihasilkan:")
         print("results/")
+        print("  ├── hasil_semua_fitur_buah.csv  ← ⭐ GABUNGAN LENGKAP SEMUA")
+        print("  ├── semua/")
+        print("  │   ├── hasil_warna_semua_kategori.csv")
+        print("  │   ├── hasil_bentuk_semua_kategori.csv")
+        print("  │   ├── hasil_color_moments_semua_kategori.csv")
+        print("  │   ├── hasil_tekstur_semua_kategori.csv")
+        print("  │   ├── hasil_glcm_semua_kategori.csv")
+        print("  │   └── hasil_edge_semua_kategori.csv")
         for category_path in categories:
             category_name = category_path.name
             print(f"  ├── {category_name}/")
